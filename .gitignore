@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.onnx
+*.pt
+samples/*.mp4
+samples/*.jpg
+outputs/
+.aws-sam/
+.DS_Store
