@@ -1,0 +1,8 @@
+{
+  "camera_id": "site-cam-01",
+  "restricted_zones": [
+    {"name": "Machinery bay", "polygon": [[0.55, 0.45], [0.95, 0.45], [0.95, 0.95], [0.55, 0.95]]}
+  ],
+  "min_person_area": 0.01,
+  "alert_cooldown_s": 10
+}

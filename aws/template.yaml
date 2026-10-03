@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Cloud Catalyst - Site Safety Monitor (OpenCV AI Competition 2026)
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: cloud-catalyst-safety-<your-unique-suffix>
+
+Resources:
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-uploads
+            Status: Enabled
+            ExpirationInDays: 14          # keeps storage cost near zero
+
+  SafetyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      MemorySize: 2048
+      Timeout: 300
+      Environment:
+        Variables:
+          ZONES_PATH: pipeline/zones.json
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref BucketName
+      Events:
+        Upload:
+          Type: S3
+          Properties:
+            Bucket: !Ref MediaBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: incoming/
+    Metadata:
+      DockerTag: v1
+      DockerContext: ..
+      Dockerfile: aws/Dockerfile
+
+Outputs:
+  Bucket:
+    Value: !Ref MediaBucket
