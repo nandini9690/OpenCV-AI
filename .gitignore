@@ -10,3 +10,6 @@ samples/*.jpg
 outputs/
 .aws-sam/
 .DS_Store
+samples/private/
+samples/demo/
+*.qng
