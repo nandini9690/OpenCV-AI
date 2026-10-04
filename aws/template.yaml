@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: Cloud Catalyst - Site Safety Monitor (OpenCV AI Competition 2026)
+Description: Cloud Catalyst - Tile QC Inspector (OpenCV AI Competition 2026)
 
 Parameters:
   BucketName:
@@ -26,7 +26,7 @@ Resources:
       Timeout: 300
       Environment:
         Variables:
-          ZONES_PATH: pipeline/zones.json
+          REFERENCE_PATH: models/reference.json
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref BucketName

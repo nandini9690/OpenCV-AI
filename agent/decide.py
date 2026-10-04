@@ -1,26 +1,36 @@
 """
-Safety agent - turns vision events into decisions, with a human approval gate.
+Tile QC agent - turns inspection results into line actions, with a human approval gate.
 
-Flow:  events.json  ->  score severity  ->  decide action  ->  needs_human? -> queue for approval
-Severity rules are deterministic (explainable for judges). An optional LLM step
-(Amazon Bedrock) writes the plain-English incident summary; it never decides on its own.
+  grade A       -> Packer 1 (first quality)            auto
+  grade B       -> Packer 2 (second quality / commercial) auto
+  grade REJECT  -> Recycle bin (crushed back into body mix)  WAITS FOR HUMAN APPROVAL
+
+Rules are deterministic (explainable for judges). An optional LLM step (Amazon Bedrock)
+writes the plain-English shift note; it never makes the decision.
 
 Usage:
-  python agent/decide.py --events outputs/events.json --out outputs/decisions.json
+  python agent/decide.py --inspection outputs/inspection.json --out outputs/decisions.json
   USE_BEDROCK=1 BEDROCK_MODEL=<model-id> python agent/decide.py ...
 """
-import argparse, json, os
+import argparse, collections, json, os
 
-RULES = {
-    "zone_intrusion": {"severity": "high",   "action": "stop_machinery_and_alert_supervisor", "human_gate": True},
-    "ppe_missing":    {"severity": "medium", "action": "notify_site_officer",                  "human_gate": False},
+ROUTES = {
+    "A":      {"action": "route_to_packer_1", "line": "Packer 1 - first quality", "human_gate": False},
+    "B":      {"action": "route_to_packer_2", "line": "Packer 2 - second quality", "human_gate": False},
+    "REJECT": {"action": "divert_to_recycle", "line": "Recycle", "human_gate": True},
 }
 
 
-def summarise(event, decision):
-    base = (f"{event['type'].replace('_', ' ').title()} on {event.get('camera')} at t={event['t']}s"
-            + (f" in '{event['zone']}'" if event.get("zone") else "")
-            + f". Proposed: {decision['action'].replace('_', ' ')}.")
+def explain(result, route):
+    found = ", ".join(sorted({d["type"] for d in result["defects"]})) or "no defects"
+    return f'{result["image"]}: grade {result["grade"]} ({found}) -> {route["line"]}.'
+
+
+def shift_note(decisions):
+    counts = collections.Counter(d["grade"] for d in decisions)
+    defects = collections.Counter(t for d in decisions for t in d["defect_types"])
+    base = (f"{len(decisions)} tiles inspected: {counts.get('A', 0)} A, {counts.get('B', 0)} B, "
+            f"{counts.get('REJECT', 0)} reject. Defects seen: {dict(defects) or 'none'}.")
     if not os.environ.get("USE_BEDROCK"):
         return base
     import boto3
@@ -28,28 +38,34 @@ def summarise(event, decision):
     resp = client.converse(
         modelId=os.environ["BEDROCK_MODEL"],
         messages=[{"role": "user", "content": [{"text":
-            "Write a 2-sentence site-safety incident note for a supervisor. Facts only: " + base}]}],
-        inferenceConfig={"maxTokens": 120, "temperature": 0.2})
+            "Write a 3-sentence end-of-shift quality note for a tile factory supervisor. "
+            "Mention the most common defect and one thing to check on the line. Facts: " + base}]}],
+        inferenceConfig={"maxTokens": 160, "temperature": 0.2})
     return resp["output"]["message"]["content"][0]["text"].strip()
 
 
-def decide(events):
+def decide(results):
     out = []
-    for e in events:
-        rule = RULES.get(e["type"], {"severity": "low", "action": "log_only", "human_gate": False})
-        d = {"event": e, **rule, "status": "awaiting_approval" if rule["human_gate"] else "auto_executed"}
-        d["summary"] = summarise(e, d)
-        out.append(d)
+    for r in results:
+        route = ROUTES[r["grade"]]
+        out.append({
+            "image": r["image"], "grade": r["grade"],
+            "defect_types": sorted({d["type"] for d in r["defects"]}),
+            **route,
+            "status": "awaiting_approval" if route["human_gate"] else "auto_executed",
+            "summary": explain(r, route),
+        })
     return out
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--events", default="outputs/events.json")
+    ap.add_argument("--inspection", default="outputs/inspection.json")
     ap.add_argument("--out", default="outputs/decisions.json")
     a = ap.parse_args()
-    events = json.load(open(a.events))["events"]
-    decisions = decide(events)
-    json.dump(decisions, open(a.out, "w"), indent=2)
+    data = json.load(open(a.inspection))
+    results = data["results"] if isinstance(data, dict) and "results" in data else data
+    decisions = decide(results)
+    json.dump({"shift_note": shift_note(decisions), "decisions": decisions}, open(a.out, "w"), indent=2)
     gated = sum(d["status"] == "awaiting_approval" for d in decisions)
-    print(f"{len(decisions)} decisions ({gated} waiting for human approval) -> {a.out}")
+    print(f"{len(decisions)} decisions ({gated} rejects waiting for human approval) -> {a.out}")

@@ -1,31 +1,39 @@
 """
 AWS Lambda entry point.
-Trigger: a video/frame uploaded to s3://<bucket>/incoming/
-Result:  events + decisions written to s3://<bucket>/results/<name>.json
+Trigger: a tile image uploaded to s3://<bucket>/incoming/
+Result:  inspection + decision written to s3://<bucket>/results/<name>.json
 
-Packaging note: OpenCV is large; deploy this Lambda as a container image (see template.yaml)
-or attach an OpenCV Lambda layer.
+The golden reference (models/reference.json) is built once from ~20 good tiles
+and packaged with the function (or loaded from S3 via REFERENCE_KEY).
+Deploy as a container image (OpenCV is large) - see aws/template.yaml.
 """
 import json, os, sys, tempfile
 import boto3
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from pipeline.detect import run          # noqa: E402
-from agent.decide import decide           # noqa: E402
+from pipeline.tile_qc import inspect     # noqa: E402
+from agent.decide import decide          # noqa: E402
 
 s3 = boto3.client("s3")
-ZONES = os.environ.get("ZONES_PATH", "pipeline/zones.json")
+
+
+def load_reference(bucket):
+    key = os.environ.get("REFERENCE_KEY")
+    if key:
+        return json.loads(s3.get_object(Bucket=bucket, Key=key)["Body"].read())
+    return json.load(open(os.environ.get("REFERENCE_PATH", "models/reference.json")))
 
 
 def handler(event, context):
     rec = event["Records"][0]["s3"]
     bucket, key = rec["bucket"]["name"], rec["object"]["key"]
+    ref = load_reference(bucket)
     with tempfile.TemporaryDirectory() as tmp:
         local = os.path.join(tmp, os.path.basename(key))
         s3.download_file(bucket, key, local)
-        events = run(local, ZONES, os.path.join(tmp, "events.json"), preview=False)
-        decisions = decide(events)
+        result = inspect(local, ref)
+    decision = decide([result])[0]
     name = os.path.splitext(os.path.basename(key))[0]
-    body = json.dumps({"source": key, "events": events, "decisions": decisions}, indent=2)
-    s3.put_object(Bucket=bucket, Key=f"results/{name}.json", Body=body, ContentType="application/json")
-    return {"statusCode": 200, "events": len(events), "decisions": len(decisions)}
+    s3.put_object(Bucket=bucket, Key=f"results/{name}.json", ContentType="application/json",
+                  Body=json.dumps({"source": key, "inspection": result, "decision": decision}, indent=2))
+    return {"statusCode": 200, "grade": result["grade"], "status": decision["status"]}

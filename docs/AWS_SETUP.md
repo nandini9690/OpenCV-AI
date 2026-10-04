@@ -12,7 +12,9 @@
 
 ## 2. Run locally first
 ```bash
-python pipeline/detect.py --video samples/site.mp4 --preview
+python pipeline/make_demo_tiles.py
+python pipeline/tile_qc.py build --refs samples/demo/reference
+python pipeline/tile_qc.py eval --ref models/reference.json --test samples/demo/test
 python agent/decide.py
 ```
 
@@ -21,7 +23,8 @@ python agent/decide.py
 sam build -t aws/template.yaml
 sam deploy --guided          # set BucketName to something globally unique
 ```
-Test: upload a clip to `s3://<bucket>/incoming/` → result appears in `results/`.
+Before `sam build`, run the `build` step so `models/reference.json` exists.
+Test: upload a tile image to `s3://<bucket>/incoming/` → result appears in `results/`.
 
 ## 4. Optional: Bedrock summaries
 - [ ] Bedrock console → **Model access** → enable one small text model
