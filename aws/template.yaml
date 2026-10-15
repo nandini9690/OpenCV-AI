@@ -21,9 +21,12 @@ Resources:
   SafetyFunction:
     Type: AWS::Serverless::Function
     Properties:
+
       PackageType: Image
       MemorySize: 2048
       Timeout: 300
+      FunctionUrlConfig:
+       AuthType: NONE
       Environment:
         Variables:
           REFERENCE_PATH: models/reference.json
@@ -45,7 +48,9 @@ Resources:
       DockerTag: v1
       DockerContext: ..
       Dockerfile: aws/Dockerfile
-
 Outputs:
   Bucket:
     Value: !Ref MediaBucket
+  WebEndpoint:
+    Description: Public URL for the Tile QC function
+    Value: !GetAtt SafetyFunctionUrl.FunctionUrl
