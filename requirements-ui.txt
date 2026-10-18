@@ -1,0 +1,3 @@
+# Approval UI only (runs on a laptop, not in Lambda)
+-r requirements.txt
+streamlit==1.66.0

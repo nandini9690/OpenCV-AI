@@ -9,8 +9,10 @@ import json
 import os
 import sys
 import tempfile
+import uuid
+
 import boto3
-import base64, json, os, uuid
+import cv2
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pipeline.tile_qc import inspect     # noqa: E402
@@ -46,7 +48,9 @@ def s3_handler(event, context):
             ContentType="application/json",
             Body=json.dumps({"source": key, "inspection": result, "decision": decision}, indent=2)
         )
-        return {"statusCode": 200, "grade": result["grade"], "status": decision["status"]}
+        return {"statusCode": 200, "grade": result["grade"], "route": decision["line"],
+                "status": decision["status"], "defects": decision["defect_types"],
+                "opencv": cv2.__version__}
 
     # -------------------------------------------------------------
     # CASE 2: HTTP Web Endpoint Request (curl / Postman)

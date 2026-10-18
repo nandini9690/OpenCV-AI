@@ -1,5 +1,7 @@
-# Approval UI (owner: Nandani)
-Reads `results/*.json` from S3 (or `outputs/decisions.json` locally) and shows:
-- a live counter: A / B / REJECT for the shift, plus the shift note
-- each REJECT tile: overlay image (`outputs/overlay_*.jpg`), defect types, **Approve recycle / Override to B** buttons
-Suggested stack: one Streamlit app (`ui/app.py`).
+# Approval UI
+`ui/app.py` is a Streamlit app. Run it with `streamlit run ui/app.py` (local `outputs/`) or
+`streamlit run ui/app.py -- --bucket <bucket>` (live `results/*.json` from S3).
+
+It shows the A / B / REJECT counts for the shift and a queue of REJECT tiles with the defect
+boxes drawn on the image. **Approve recycle** or **Override to B** is written to
+`approvals/<tile>.json` in S3, or `outputs/approvals.json` locally.
