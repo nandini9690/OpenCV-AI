@@ -8,6 +8,19 @@ This project teaches a camera what a **good** tile looks like from about **20 of
 then inspects every new tile, **grades it** and lets an AI agent **route it** to the right packer —
 with a **human approval gate** before anything is sent to recycling.
 
+## Try it live
+**Web endpoint (AWS Lambda Function URL, us-east-1):**
+https://hkdbd4v3q4mfndvdjo4kvxzndm0ddjlj.lambda-url.us-east-1.on.aws/
+
+Open it, choose a tile image from `samples/demo/test/` (run `python pipeline/make_demo_tiles.py` first),
+click **Inspect**. Checked on the live service (OpenCV `5.0.0`):
+
+| Tile | Grade | Route | Status | Defects |
+|---|---|---|---|---|
+| `tile_011.jpg` | A | Packer 1 - first quality | auto_executed | none |
+| `tile_019.jpg` | REJECT | Recycle | awaiting_approval | crack |
+| `tile_037.jpg` | REJECT | Recycle | awaiting_approval | chip, spot |
+
 ## How it works
 ```
 20 best tiles ──► learn "good" statistics ──► models/reference.json
@@ -90,6 +103,7 @@ curl -X POST "<WebEndpoint>" -H "content-type: application/json" \
 ```
 Expected for `tile_019.jpg`: grade **REJECT**, route **Recycle**, status `awaiting_approval`, defect `crack`.
 Expected for `tile_001.jpg`: grade **B** (stain), route **Packer 2**.
+Expected for `tile_011.jpg`: grade **A**, route **Packer 1**, status `auto_executed`.
 
 **S3 trigger:**
 ```bash
