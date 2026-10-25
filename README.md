@@ -21,7 +21,7 @@ click **Inspect**. Checked on the live service (OpenCV `5.0.0`):
 | `tile_019.jpg` | REJECT | Recycle | awaiting_approval | crack |
 | `tile_037.jpg` | REJECT | Recycle | awaiting_approval | chip, spot |
 
-**Live S3 pipeline:** bucket `cloud-catalyst-tileqc-nc2026-v2` (stack `cloud-catalyst-tileqc-v2`). Upload to `incoming/`, read `results/<name>.json` about 10 s later. Checked: `tile_019.jpg` → REJECT (crack), action `divert_to_recycle`, `human_gate: true`, status `awaiting_approval`.
+**Live S3 pipeline:** bucket `cloud-catalyst-tileqc-nc2026bc` (stack `cloud-catalyst-tileqc-v2`). Upload to `incoming/`, read `results/<name>.json` about 10 s later. Checked: `tile_019.jpg` → REJECT (crack), action `divert_to_recycle`, `human_gate: true`, status `awaiting_approval`.
 
 ## How it works
 ```
@@ -79,7 +79,7 @@ Overlays with boxes and grades are written to `outputs/`.
 ```bash
 pip install -r requirements-ui.txt
 streamlit run ui/app.py                                    # local results in outputs/
-streamlit run ui/app.py -- --bucket cloud-catalyst-tileqc-nc2026-v2   # live results from S3 (uses your AWS CLI credentials)
+streamlit run ui/app.py -- --bucket cloud-catalyst-tileqc-nc2026bc   # live results from S3 (uses your AWS CLI credentials)
 ```
 Shows A / B / REJECT counts and a queue of rejects with the defect boxes drawn on the tile.
 **Approve recycle** or **Override to B** is saved to `approvals/<tile>.json` in S3 (or `outputs/approvals.json` locally).
@@ -109,8 +109,8 @@ Expected for `tile_011.jpg`: grade **A**, route **Packer 1**, status `auto_execu
 
 **S3 trigger:**
 ```bash
-aws s3 cp samples/demo/test/tile_001.jpg s3://cloud-catalyst-tileqc-nc2026-v2/incoming/tile_001.jpg
-aws s3 cp s3://cloud-catalyst-tileqc-nc2026-v2/results/tile_001.json -      # appears after ~10 s
+aws s3 cp samples/demo/test/tile_001.jpg s3://cloud-catalyst-tileqc-nc2026bc/incoming/tile_001.jpg
+aws s3 cp s3://cloud-catalyst-tileqc-nc2026bc/results/tile_001.json -      # appears after ~10 s
 ```
 Logs: CloudWatch → `/aws/lambda/<function-name>`.
 

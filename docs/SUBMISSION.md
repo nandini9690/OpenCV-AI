@@ -9,7 +9,7 @@ Track: **Agentic Vision only**. Do not tick other prize categories.
 | Pipeline + agent + eval numbers | Edmund | ✅ in repo |
 | Lambda on OpenCV 5.0.0 + web endpoint | Nandani | ✅ live (tiles 011 / 019 / 037 checked) |
 | README with live URL | Edmund | ✅ this commit |
-| S3 trigger on `incoming/` runs the new function | Nandani | ✅ works on the **v2 bucket** `cloud-catalyst-tileqc-nc2026-v2` (tile_019 → REJECT crack, awaiting_approval) |
+| S3 trigger on `incoming/` runs the new function | Nandani | ✅ works on the live bucket `cloud-catalyst-tileqc-nc2026bc` (re-test after the 25 Oct redeploy) (tile_019 → REJECT crack, awaiting_approval) |
 | Deployed template / handler changes pushed to GitHub | Nandani | ⬜ repo still shows the 15 Oct version |
 | Approval UI against the live bucket | Nandani | ⬜ |
 | Budget alarm | Nandani | ⬜ confirm |
@@ -17,17 +17,15 @@ Track: **Agentic Vision only**. Do not tick other prize categories.
 | Video ≤ 5 min, YouTube **public** | Nandani (script below) | ⬜ |
 | Zip of code, Devpost form | Nandani | ⬜ |
 
-### Live bucket (checked 25 Oct)
-The v2 stack created its own bucket. **Use `cloud-catalyst-tileqc-nc2026-v2` everywhere** (UI, Devpost, video):
+### Live bucket (updated 26 Oct)
+The 25 Oct redeploy of stack `cloud-catalyst-tileqc-v2` moved it to a new bucket. **Use `cloud-catalyst-tileqc-nc2026bc` everywhere** (UI, Devpost, video). The previous bucket `cloud-catalyst-tileqc-nc2026-v2` was not empty, so CloudFormation kept it (DELETE_FAILED is harmless); it no longer has a trigger. Web uploads now also go to `nc2026bc` (`BUCKET_NAME` in the template), so web results show in the approval UI too:
 ```bash
-aws s3 cp samples/demo/test/tile_019.jpg s3://cloud-catalyst-tileqc-nc2026-v2/incoming/tile_019.jpg
+aws s3 cp samples/demo/test/tile_019.jpg s3://cloud-catalyst-tileqc-nc2026bc/incoming/tile_019.jpg
 # wait ~10 s
-aws s3 cp s3://cloud-catalyst-tileqc-nc2026-v2/results/tile_019.json -
-streamlit run ui/app.py -- --bucket cloud-catalyst-tileqc-nc2026-v2
+aws s3 cp s3://cloud-catalyst-tileqc-nc2026bc/results/tile_019.json -
+streamlit run ui/app.py -- --bucket cloud-catalyst-tileqc-nc2026bc
 ```
-The old bucket `cloud-catalyst-tileqc-nc2026` no longer processes `incoming/` uploads (results stay 404). The web page may
-still save its uploads there (the handler's `BUCKET_NAME` default), so web-page results may not appear in the UI; show the
-web page and the S3 + approval-UI flow as two separate parts of the demo. Do not delete either stack or bucket until judging ends.
+Older buckets (`cloud-catalyst-tileqc-nc2026`, `cloud-catalyst-tileqc-nc2026-v2`) no longer process uploads. Do not delete any stack or bucket until judging ends.
 
 ---
 
