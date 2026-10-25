@@ -30,6 +30,7 @@ Resources:
       Environment:
         Variables:
           REFERENCE_PATH: models/reference.json
+          BUCKET_NAME: !Ref BucketName      # web uploads go to this stack's own bucket
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref BucketName
