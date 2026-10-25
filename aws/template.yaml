@@ -54,3 +54,4 @@ Outputs:
   WebEndpoint:
     Description: Public URL for the Tile QC function
     Value: !GetAtt SafetyFunctionUrl.FunctionUrl
+
